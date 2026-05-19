@@ -6,6 +6,7 @@ import base64
 import requests
 import re
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, render_template, request, jsonify, send_from_directory, url_for
 from dotenv import load_dotenv
 
@@ -240,6 +241,46 @@ class ReportFooterTemplate(PageTemplate):
         canvas.restoreState()
 
 
+def prefetch_images(report_data):
+    queries = set()
+    for section in report_data.get('sections', []):
+        stype = section.get('type', 'standard')
+        if stype == 'components_table':
+            for comp in section.get('components', []):
+                q = comp.get('image_query')
+                if not q or not q.strip():
+                    q = comp.get('name', 'electronic component')
+                if q:
+                    queries.add(q.strip())
+        elif stype == 'flowchart':
+            pass
+        elif stype not in ['cover', 'certificate']:
+            for sub in section.get('subheadings', []):
+                q = sub.get('image_query')
+                if not q or not q.strip():
+                    q = sub.get('title', '')
+                if q and q.lower() not in ["links", "references", "abstract"]:
+                    queries.add(q.strip())
+                    
+    image_map = {}
+    if not queries:
+        return image_map
+        
+    print(f"Prefetching {len(queries)} images in parallel...", flush=True)
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_query = {executor.submit(fetch_pexels_image, q): q for q in queries}
+        for future in future_to_query:
+            q = future_to_query[future]
+            try:
+                path = future.result()
+                if path:
+                    image_map[q] = path
+            except Exception as e:
+                print(f"Error prefetching image for query '{q}': {e}", flush=True)
+                
+    return image_map
+
+
 def build_pdf(report_data, filepath):
     doc = BaseDocTemplate(filepath, pagesize=A4, rightMargin=inch, leftMargin=inch, topMargin=inch, bottomMargin=inch)
     doc.addPageTemplates([ReportFooterTemplate('Normal', report_data.get('project_title', 'Engineering Report'))])
@@ -268,6 +309,7 @@ def build_pdf(report_data, filepath):
         # Fallback for any other non-ascii character that reportlab helvetica might struggle with
         return text.encode('ascii', 'ignore').decode('ascii')
 
+    image_map = prefetch_images(report_data)
     story = []
     
     for section in report_data.get('sections', []):
@@ -301,8 +343,9 @@ def build_pdf(report_data, filepath):
                 image_query = comp.get('image_query')
                 if not image_query or not image_query.strip():
                     image_query = comp.get('name', 'electronic component')
+                image_query = image_query.strip() if image_query else ""
                 
-                img_path = fetch_pexels_image(image_query) if image_query else None
+                img_path = image_map.get(image_query)
                 # Use a slightly smaller image to prevent overlap in the column, and preserve aspect ratio if possible
                 img_flowable = Image(img_path, width=1.2*inch, height=0.8*inch, kind='proportional') if img_path else ""
                 
@@ -366,10 +409,11 @@ def build_pdf(report_data, filepath):
                 image_query = sub.get('image_query')
                 if not image_query or not image_query.strip():
                     image_query = sub.get('title', '')
+                image_query = image_query.strip() if image_query else ""
                 
                 # We skip references or links page images as they are text links
                 if image_query and image_query.lower() not in ["links", "references", "abstract"]:
-                    img_path = fetch_pexels_image(image_query)
+                    img_path = image_map.get(image_query)
                     if img_path:
                         img = Image(img_path, width=4*inch, height=2.5*inch, kind='proportional')
                         img.hAlign = 'CENTER'
