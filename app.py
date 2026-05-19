@@ -1,5 +1,6 @@
 import os
 import json
+import json_repair
 import uuid
 import base64
 import requests
@@ -180,10 +181,11 @@ def generate_report_data(topic, requirements):
         response_text = match.group(1)
     
     try:
-        data = json.loads(response_text)
+        # Use json_repair to automatically fix minor syntax errors like missing commas or quotes
+        data = json_repair.loads(response_text)
         # Handle potential double-serialization
         if isinstance(data, str):
-            data = json.loads(data)
+            data = json_repair.loads(data)
         if not isinstance(data, dict):
             raise ValueError("AI response did not resolve to a JSON dictionary object.")
         return data
