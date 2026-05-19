@@ -1,0 +1,6 @@
+Flask
+reportlab
+requests
+python-dotenv
+Pillow
+gunicorn

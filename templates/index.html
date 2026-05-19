@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReportAI — AI Engineering Report Generator</title>
+    <meta name="description" content="Generate complete 17-section engineering project reports as PDF in seconds. AI-powered with real images and auto flowcharts.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar">
+    <div class="nav-logo"><i class="fa-solid fa-bolt"></i> ReportAI</div>
+    <div class="nav-pills">
+        <span class="nav-pill"><span class="live-dot"></span>Live</span>
+        <span class="nav-pill"><i class="fa-brands fa-python"></i> Flask</span>
+        <span class="nav-pill"><i class="fa-solid fa-robot"></i> Gemini AI</span>
+    </div>
+</nav>
+<div class="page">
+    <section class="hero">
+        <div class="hero-badge"><span class="badge-pulse"></span> AI Engineering Pro &middot; Gemini 2.5 Pro</div>
+        <h1 class="hero-title">Generate Complete<br><span class="gradient-text">Engineering Reports</span><br>in Seconds</h1>
+        <p class="hero-sub">Enter your project topic. AI writes your full 17-section engineering report with real hardware images, flowcharts, and professional PDF formatting.</p>
+        <div class="hero-chips">
+            <div class="hero-chip"><i class="fa-solid fa-file-pdf"></i> 17 Sections</div>
+            <div class="hero-chip"><i class="fa-solid fa-images"></i> 20+ Real Images</div>
+            <div class="hero-chip"><i class="fa-solid fa-diagram-project"></i> Auto Flowcharts</div>
+            <div class="hero-chip"><i class="fa-solid fa-clock"></i> ~20 Seconds</div>
+        </div>
+    </section>
+    <section class="gen-section">
+        <div class="glass-card">
+            <!-- FORM STATE -->
+            <div id="formState">
+                <div class="card-top">
+                    <div class="card-icon-wrap"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                    <h2 class="card-title">Generate Your Report</h2>
+                    <p class="card-sub">Fill in your project details below</p>
+                </div>
+                <form id="reportForm">
+                    <div class="field">
+                        <label for="projectTopic"><i class="fa-solid fa-microchip"></i> Project Topic / Title</label>
+                        <div class="field-wrap">
+                            <input type="text" id="projectTopic" name="projectTopic" placeholder="e.g., IoT Based Smart Agriculture System using ESP32" required autocomplete="off">
+                            <div class="field-glow"></div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="requirements"><i class="fa-solid fa-list-check"></i> Specific Requirements <span class="opt-tag">Optional</span></label>
+                        <div class="field-wrap">
+                            <textarea id="requirements" name="requirements" rows="3" placeholder="e.g., Include soil moisture sensor, DHT11, and a water pump relay."></textarea>
+                            <div class="field-glow"></div>
+                        </div>
+                    </div>
+                    <div class="suggestions">
+                        <span class="sug-label">Try:</span>
+                        <button type="button" class="sug-chip" data-topic="Smart Home Automation using NodeMCU and Relay">Smart Home</button>
+                        <button type="button" class="sug-chip" data-topic="IoT Air Quality Monitor using MQ135 and ESP8266">Air Monitor</button>
+                        <button type="button" class="sug-chip" data-topic="Autonomous Line Following Robot using Arduino">Line Follower</button>
+                        <button type="button" class="sug-chip" data-topic="RFID Based Attendance System using Arduino Uno">RFID System</button>
+                    </div>
+                    <button type="submit" id="generateBtn" class="gen-btn">
+                        <div class="gen-btn-bg"></div>
+                        <div class="gen-btn-shine"></div>
+                        <span><i class="fa-solid fa-bolt"></i> Generate Full Report</span>
+                    </button>
+                </form>
+            </div>
+            <!-- LOADING STATE -->
+            <div id="loadingState" class="hidden">
+                <div class="loading-body">
+                    <div class="ai-orb">
+                        <div class="orb-r orb-r1"></div>
+                        <div class="orb-r orb-r2"></div>
+                        <div class="orb-r orb-r3"></div>
+                        <i class="fa-solid fa-brain orb-icon"></i>
+                    </div>
+                    <h3 class="loading-title">AI is Building Your Report</h3>
+                    <div class="steps-list">
+                        <div class="step-item active" id="step1">
+                            <div class="step-ic"><i class="fa-solid fa-bolt"></i></div>
+                            <div class="step-txt"><strong>AI Analysis</strong><span>Analyzing your project...</span></div>
+                            <div class="step-badge"><i class="fa-solid fa-spinner fa-spin"></i></div>
+                        </div>
+                        <div class="step-item" id="step2">
+                            <div class="step-ic"><i class="fa-solid fa-pen-nib"></i></div>
+                            <div class="step-txt"><strong>Content Writing</strong><span>Writing 17 sections...</span></div>
+                            <div class="step-badge pending"><i class="fa-regular fa-circle"></i></div>
+                        </div>
+                        <div class="step-item" id="step3">
+                            <div class="step-ic"><i class="fa-solid fa-images"></i></div>
+                            <div class="step-txt"><strong>Fetching Images</strong><span>Sourcing hardware photos...</span></div>
+                            <div class="step-badge pending"><i class="fa-regular fa-circle"></i></div>
+                        </div>
+                        <div class="step-item" id="step4">
+                            <div class="step-ic"><i class="fa-solid fa-file-pdf"></i></div>
+                            <div class="step-txt"><strong>PDF Compilation</strong><span>Building your document...</span></div>
+                            <div class="step-badge pending"><i class="fa-regular fa-circle"></i></div>
+                        </div>
+                    </div>
+                    <div class="prog-track"><div class="prog-fill" id="progressBar"></div></div>
+                    <div class="prog-labels">
+                        <span id="loadingMessage">Initializing AI engine...</span>
+                        <span id="loadingPercentage">0%</span>
+                    </div>
+                </div>
+            </div>
+            <!-- SUCCESS STATE -->
+            <div id="resultState" class="hidden">
+                <div class="result-body">
+                    <div class="success-circle">
+                        <div class="success-ring-anim"></div>
+                        <i class="fa-solid fa-check success-check-icon"></i>
+                    </div>
+                    <h3 class="result-title">Report Ready! &#127881;</h3>
+                    <p class="result-sub">Your professional engineering report has been generated successfully.</p>
+                    <div class="result-stats">
+                        <div class="r-stat"><span class="r-stat-val">17</span><span class="r-stat-lbl">Sections</span></div>
+                        <div class="r-stat-div"></div>
+                        <div class="r-stat"><span class="r-stat-val">20+</span><span class="r-stat-lbl">Images</span></div>
+                        <div class="r-stat-div"></div>
+                        <div class="r-stat"><span class="r-stat-val">~2MB</span><span class="r-stat-lbl">PDF Size</span></div>
+                    </div>
+                    <div class="result-actions">
+                        <a id="downloadBtn" href="#" class="ra-btn ra-primary" download><i class="fa-solid fa-download"></i> Download PDF</a>
+                        <a id="viewBtn" href="#" class="ra-btn ra-secondary" target="_blank"><i class="fa-solid fa-eye"></i> View PDF</a>
+                        <button id="backBtn" class="ra-btn ra-ghost"><i class="fa-solid fa-rotate-left"></i> New Report</button>
+                    </div>
+                </div>
+            </div>
+            <!-- ERROR STATE -->
+            <div id="errorState" class="hidden">
+                <div class="error-body">
+                    <div class="error-icon-wrap"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <h3>Generation Failed</h3>
+                    <p id="errorText">An unexpected error occurred. Please check your API key and try again.</p>
+                    <button id="retryBtn" class="ra-btn ra-secondary"><i class="fa-solid fa-rotate"></i> Try Again</button>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="features">
+        <h2 class="sec-title">Everything in one report</h2>
+        <div class="feat-grid">
+            <div class="feat-card" style="--c:#3b82f6"><div class="feat-icon"><i class="fa-solid fa-robot"></i></div><h3>Gemini AI-Powered</h3><p>Google Gemini 2.5 Pro writes technically accurate content with engineering terminology and real formulas.</p></div>
+            <div class="feat-card" style="--c:#10b981"><div class="feat-icon"><i class="fa-solid fa-images"></i></div><h3>Real Hardware Images</h3><p>15-25 professional stock photos of actual electronic components auto-sourced from Pexels and embedded.</p></div>
+            <div class="feat-card" style="--c:#8b5cf6"><div class="feat-icon"><i class="fa-solid fa-diagram-project"></i></div><h3>Auto Flowcharts</h3><p>System workflow diagrams auto-generated using Mermaid.js and rendered as clean images in your PDF.</p></div>
+            <div class="feat-card" style="--c:#f59e0b"><div class="feat-icon"><i class="fa-solid fa-shield-halved"></i></div><h3>5-Model Fallback</h3><p>If the primary model fails, 4 backup AI models are tried automatically for near-100% uptime.</p></div>
+            <div class="feat-card" style="--c:#ec4899"><div class="feat-icon"><i class="fa-solid fa-table-list"></i></div><h3>Component Tables</h3><p>Structured hardware tables with images, quantities and descriptions auto-generated for every project.</p></div>
+            <div class="feat-card" style="--c:#06b6d4"><div class="feat-icon"><i class="fa-solid fa-file-pdf"></i></div><h3>Professional PDF</h3><p>Every page has borders, headers, footers, page numbers and date stamps — ready to submit to college.</p></div>
+        </div>
+    </section>
+    <footer class="footer">
+        <div class="footer-logo"><i class="fa-solid fa-bolt"></i> ReportAI</div>
+        <p>Powered by <strong>OpenRouter</strong> &middot; <strong>Google Gemini</strong> &middot; <strong>ReportLab</strong> &middot; <strong>Pexels</strong></p>
+        <p class="footer-tiny">Built with Python + Flask &middot; DSA Mini Project</p>
+    </footer>
+</div>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
