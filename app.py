@@ -149,7 +149,7 @@ def generate_report_data(topic, requirements):
         "google/gemma-2-27b-it:free"
     ]
     
-    response = None
+    response_data = None
     last_error = None
     
     for model_name in models_to_try:
@@ -158,56 +158,49 @@ def generate_report_data(topic, requirements):
         try:
             r = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=60)
             r.raise_for_status()
-            response = r
-            print(f"Successfully generated with {model_name}!", flush=True)
+            
+            res_json = r.json()
+            choices = res_json.get('choices', [])
+            if not choices:
+                raise ValueError("OpenRouter API returned an empty choices list.")
+            
+            message = choices[0].get('message', {})
+            response_text = message.get('content')
+            if not response_text:
+                raise ValueError("AI model returned empty message content.")
+                
+            response_text = response_text.strip()
+            
+            # Strip markdown if the AI mistakenly included it
+            response_text = re.sub(r'^```json\s*', '', response_text)
+            response_text = re.sub(r'^```\s*', '', response_text)
+            response_text = re.sub(r'\s*```$', '', response_text)
+            response_text = response_text.strip()
+            
+            # Extract JSON object if there is surrounding conversational text
+            match = re.search(r'(\{.*\})', response_text, re.DOTALL)
+            if match:
+                response_text = match.group(1)
+                
+            # Use json_repair to automatically fix minor syntax errors like missing commas or quotes
+            data = json_repair.loads(response_text)
+            # Handle potential double-serialization
+            if isinstance(data, str):
+                data = json_repair.loads(data)
+            if not isinstance(data, dict):
+                raise ValueError("AI response did not resolve to a JSON dictionary object.")
+                
+            response_data = data
+            print(f"Successfully generated and parsed content with {model_name}!", flush=True)
             break
         except Exception as e:
             print(f"Model {model_name} failed: {e}. Trying next fallback...", flush=True)
             last_error = e
             
-    if not response:
+    if not response_data:
         raise RuntimeError(f"All AI models failed to generate content. Last error: {last_error}")
-    
-    try:
-        choices = response.json().get('choices', [])
-        if not choices:
-            raise ValueError("OpenRouter API returned an empty choices list.")
         
-        message = choices[0].get('message', {})
-        response_text = message.get('content')
-        
-        if not response_text:
-            raise ValueError("AI model returned an empty message content.")
-            
-        response_text = response_text.strip()
-        # Strip markdown if the AI mistakenly included it
-        response_text = re.sub(r'^```json\s*', '', response_text)
-        response_text = re.sub(r'^```\s*', '', response_text)
-        response_text = re.sub(r'\s*```$', '', response_text)
-        response_text = response_text.strip()
-    except Exception as e:
-        # Check if response object has text attribute
-        resp_body = response.text if hasattr(response, 'text') else str(response)
-        print("Error parsing OpenRouter response JSON:", resp_body[:300])
-        raise RuntimeError(f"Failed to parse API response: {str(e)}")
-    
-    # Extract JSON object if there is surrounding conversational text
-    match = re.search(r'(\{.*\})', response_text, re.DOTALL)
-    if match:
-        response_text = match.group(1)
-    
-    try:
-        # Use json_repair to automatically fix minor syntax errors like missing commas or quotes
-        data = json_repair.loads(response_text)
-        # Handle potential double-serialization
-        if isinstance(data, str):
-            data = json_repair.loads(data)
-        if not isinstance(data, dict):
-            raise ValueError("AI response did not resolve to a JSON dictionary object.")
-        return data
-    except Exception as e:
-        print("Failed to decode JSON. Response text snippet:", response_text[:300], "...")
-        raise ValueError(f"AI response was not valid JSON: {str(e)}")
+    return response_data
 
 
 class ReportFooterTemplate(PageTemplate):
