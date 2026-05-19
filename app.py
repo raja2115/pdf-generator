@@ -133,7 +133,7 @@ def generate_report_data(topic, requirements):
     
     payload = {
         "model": AI_MODEL,
-        "max_tokens": 8000,
+        "max_tokens": 4000,
         "messages": [
             {"role": "system", "content": "You are a JSON-generating bot for engineering reports. Output ONLY valid JSON."},
             {"role": "user", "content": prompt}
@@ -143,11 +143,15 @@ def generate_report_data(topic, requirements):
     
     models_to_try = [
         AI_MODEL,
-        "openrouter/free",
         "meta-llama/llama-3.3-70b-instruct:free",
         "qwen/qwen-2.5-72b-instruct:free",
-        "google/gemma-2-27b-it:free"
+        "google/gemma-2-27b-it:free",
+        "openrouter/free"
     ]
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    models_to_try = [x for x in models_to_try if not (x in seen or seen.add(x))]
     
     response_data = None
     last_error = None
