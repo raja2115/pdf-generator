@@ -167,13 +167,28 @@ def generate_report_data(topic, requirements):
     if not response:
         raise RuntimeError(f"All AI models failed to generate content. Last error: {last_error}")
     
-    response_text = response.json()['choices'][0]['message']['content'].strip()
-    
-    # Strip markdown if the AI mistakenly included it
-    response_text = re.sub(r'^```json\s*', '', response_text)
-    response_text = re.sub(r'^```\s*', '', response_text)
-    response_text = re.sub(r'\s*```$', '', response_text)
-    response_text = response_text.strip()
+    try:
+        choices = response.json().get('choices', [])
+        if not choices:
+            raise ValueError("OpenRouter API returned an empty choices list.")
+        
+        message = choices[0].get('message', {})
+        response_text = message.get('content')
+        
+        if not response_text:
+            raise ValueError("AI model returned an empty message content.")
+            
+        response_text = response_text.strip()
+        # Strip markdown if the AI mistakenly included it
+        response_text = re.sub(r'^```json\s*', '', response_text)
+        response_text = re.sub(r'^```\s*', '', response_text)
+        response_text = re.sub(r'\s*```$', '', response_text)
+        response_text = response_text.strip()
+    except Exception as e:
+        # Check if response object has text attribute
+        resp_body = response.text if hasattr(response, 'text') else str(response)
+        print("Error parsing OpenRouter response JSON:", resp_body[:300])
+        raise RuntimeError(f"Failed to parse API response: {str(e)}")
     
     # Extract JSON object if there is surrounding conversational text
     match = re.search(r'(\{.*\})', response_text, re.DOTALL)
