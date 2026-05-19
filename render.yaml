@@ -11,4 +11,4 @@ services:
       - key: PEXELS_API_KEY
         sync: false
       - key: AI_MODEL
-        value: google/gemini-2.5-flash:free
+        value: openrouter/free
