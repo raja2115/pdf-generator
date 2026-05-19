@@ -283,7 +283,11 @@ def build_pdf(report_data, filepath):
             
             table_data = [['S.No', 'Component', 'Qty', 'Description', 'Image']]
             for comp in section.get('components', []):
-                img_path = fetch_pexels_image(comp.get('image_query', 'electronic component')) if comp.get('image_query') else None
+                image_query = comp.get('image_query')
+                if not image_query or not image_query.strip():
+                    image_query = comp.get('name', 'electronic component')
+                
+                img_path = fetch_pexels_image(image_query) if image_query else None
                 # Use a slightly smaller image to prevent overlap in the column, and preserve aspect ratio if possible
                 img_flowable = Image(img_path, width=1.2*inch, height=0.8*inch, kind='proportional') if img_path else ""
                 
@@ -343,9 +347,14 @@ def build_pdf(report_data, filepath):
                 if sub_text:
                     section_story.append(Paragraph(sanitize_text(sub_text), styles['BodyTextCustom']))
                 
-                # Fetch and add image if queried
-                if sub.get('image_query'): 
-                    img_path = fetch_pexels_image(sub.get('image_query'))
+                # Fetch and add image if queried (or use subheading title as fallback)
+                image_query = sub.get('image_query')
+                if not image_query or not image_query.strip():
+                    image_query = sub.get('title', '')
+                
+                # We skip references or links page images as they are text links
+                if image_query and image_query.lower() not in ["links", "references", "abstract"]:
+                    img_path = fetch_pexels_image(image_query)
                     if img_path:
                         img = Image(img_path, width=4*inch, height=2.5*inch, kind='proportional')
                         img.hAlign = 'CENTER'
