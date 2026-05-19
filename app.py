@@ -43,13 +43,13 @@ def fetch_pexels_image(query):
     params = {"query": query + " electronic hardware white background", "per_page": 1, "orientation": "landscape"}
     
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
         
         if data.get('photos') and len(data['photos']) > 0:
             img_url = data['photos'][0]['src']['medium']
-            img_response = requests.get(img_url)
+            img_response = requests.get(img_url, timeout=10)
             
             filename = f"pexels_{uuid.uuid4().hex}.jpg"
             filepath = os.path.join(ASSETS_DIR, filename)
@@ -67,7 +67,7 @@ def fetch_mermaid_flowchart(mermaid_code):
         encoded = base64.urlsafe_b64encode(mermaid_code.encode('utf-8')).decode('utf-8')
         url = f"https://mermaid.ink/img/{encoded}"
         
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         response.raise_for_status()
         
         filename = f"flowchart_{uuid.uuid4().hex}.png"
