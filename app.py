@@ -141,10 +141,10 @@ def generate_report_data(topic, requirements):
     
     models_to_try = [
         AI_MODEL,
-        "poolside/laguna-m.1:free",
-        "google/gemma-4-26b-a4b-it:free",
-        "nvidia/nemotron-3-nano-30b-a3b:free",
-        "openai/gpt-oss-120b:free"
+        "google/gemini-2.5-flash:free",
+        "qwen/qwen-2.5-72b-instruct:free",
+        "meta-llama/llama-3-8b-instruct:free",
+        "google/gemma-2-9b-it:free"
     ]
     
     response = None
