@@ -166,18 +166,30 @@ def generate_report_data(topic, requirements):
     if not response:
         raise RuntimeError(f"All AI models failed to generate content. Last error: {last_error}")
     
-    response_text = response.json()['choices'][0]['message']['content']
+    response_text = response.json()['choices'][0]['message']['content'].strip()
     
     # Strip markdown if the AI mistakenly included it
     response_text = re.sub(r'^```json\s*', '', response_text)
     response_text = re.sub(r'^```\s*', '', response_text)
     response_text = re.sub(r'\s*```$', '', response_text)
+    response_text = response_text.strip()
+    
+    # Extract JSON object if there is surrounding conversational text
+    match = re.search(r'(\{.*\})', response_text, re.DOTALL)
+    if match:
+        response_text = match.group(1)
     
     try:
-        return json.loads(response_text)
-    except json.JSONDecodeError as e:
-        print("Failed to decode JSON:", response_text[:200], "...")
-        raise ValueError("AI response was not valid JSON.")
+        data = json.loads(response_text)
+        # Handle potential double-serialization
+        if isinstance(data, str):
+            data = json.loads(data)
+        if not isinstance(data, dict):
+            raise ValueError("AI response did not resolve to a JSON dictionary object.")
+        return data
+    except Exception as e:
+        print("Failed to decode JSON. Response text snippet:", response_text[:300], "...")
+        raise ValueError(f"AI response was not valid JSON: {str(e)}")
 
 
 class ReportFooterTemplate(PageTemplate):
